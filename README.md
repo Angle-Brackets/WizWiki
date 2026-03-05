@@ -4,9 +4,11 @@
 
 [![Tests](https://github.com/Angle-Brackets/WizWiki/actions/workflows/test.yml/badge.svg)](https://github.com/Angle-Brackets/WizWiki/actions)
 [![PyPI version](https://img.shields.io/pypi/v/wizwiki?color=blue)](https://pypi.org/project/wizwiki/)
-[![License](https://img.shields.io/github/license/Angle-Brackets/WizWiki?color=green)](https://github.com/Angle-Brackets/WizWiki/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-green)](https://github.com/Angle-Brackets/WizWiki/blob/main/LICENSE)
 
-A modern, high-performance, asynchronous Python library designed to scrape and query the Wizard101 Wiki with precision and ease.
+A modern, high-performance, asynchronous Python library designed to scrape and query the Wizard101 Wiki with precision and ease for python 3.11+.
+
+<br clear="both"/>
 
 ## Features
 
