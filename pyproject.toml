@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wizwiki"
+version = "0.1.0"
+description = "A modern asynchronous client for the Wizard101 Wiki."
+readme = "README.md"
+authors = [
+    {name = "Angle-Brackets"}
+]
+license = {text = "MIT"}
+requires-python = ">=3.9"
+dependencies = [
+    "cloudscraper>=1.2.71",
+    "beautifulsoup4>=4.12.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "flake8>=6.0.0",
+    "tox>=4.0.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
