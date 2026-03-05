@@ -1,6 +1,7 @@
 # WizWiki v0.0.1
 
-<img align="right" src="logo.png" width="200" alt="WizWiki logo">
+<img align="right" src="logo.png" width="200" alt="WizWiki logo"/>
+
 [![Tests](https://github.com/Angle-Brackets/WizWiki/actions/workflows/test.yml/badge.svg)](https://github.com/Angle-Brackets/WizWiki/actions)
 [![PyPI version](https://img.shields.io/pypi/v/wizwiki?color=blue)](https://pypi.org/project/wizwiki/)
 [![License](https://img.shields.io/github/license/Angle-Brackets/WizWiki?color=green)](https://github.com/Angle-Brackets/WizWiki/blob/main/LICENSE)
