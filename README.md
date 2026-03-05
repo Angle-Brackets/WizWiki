@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
 ## CI/CD & Quality
 
-WizWiki is tested across **Ubuntu, Windows, and macOS** using `tox` and GitHub Actions, ensuring compatibility across Python 3.9, 3.10, 3.11, and 3.12.
+WizWiki is tested across **Ubuntu, Windows, and macOS** using `tox` and GitHub Actions, ensuring compatibility across Python 3.11, and 3.12.
 
 ## License
 
