@@ -11,7 +11,7 @@ authors = [
     {name = "Angle-Brackets"}
 ]
 license = {text = "MIT"}
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "cloudscraper>=1.2.71",
     "beautifulsoup4>=4.12.0",
@@ -25,6 +25,9 @@ dev = [
     "flake8>=6.0.0",
     "tox>=4.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Angle-Brackets/WizWiki"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
