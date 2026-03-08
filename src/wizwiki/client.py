@@ -57,6 +57,23 @@ class WizWikiClient:
             response.raise_for_status()
             return response
 
+    def normalize_url(self, path: str) -> str:
+        """
+        Normalizes a wiki path into a full URL, handling duplicate segments
+        and ensuring consistency.
+        """
+        if not path:
+            return ""
+        if path.startswith("http"):
+            return path
+
+        # Remove leading wiki/ if it exists to avoid duplication with base_url
+        path = path.lstrip("/")
+        if path.startswith("wiki/"):
+            path = path[5:]
+
+        return f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
+
     def _map_category_to_view(self, name: str, category: str, url: str) -> View:
         # Proper casing for Wiki categories
         if category.upper() == "NPC":

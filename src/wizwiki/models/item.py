@@ -52,6 +52,9 @@ class Item(Resource):
     used_in_recipes: List[RecipeView] = Field(
         default_factory=list,
         description="A list of recipes that require this item as an ingredient.")
+    item_cards: List[str] = Field(
+        default_factory=list,
+        description="A list of names of Item Cards provided by this item.")
 
     @classmethod
     async def get(cls, name: str, client: Optional['WizWikiClient'] = None) -> 'Item':
@@ -84,6 +87,7 @@ class Item(Resource):
         tradeable = True
         auctionable = True
         used_in = []
+        item_cards = []
 
         if content:
             def get_val_robust(label_text):
@@ -157,34 +161,42 @@ class Item(Resource):
                 auctionable = "No" not in auc_val
 
             for row in content.find_all("tr"):
-                text = row.get_text(" ", strip=True)
-                if len(text) > 300:
+                # Clean up the row text by removing junk icons and their alt text
+                row_copy = BeautifulSoup(str(row), "html.parser")
+                for img in row_copy.find_all("img"):
+                    alt = img.get("alt", "").lower()
+                    if any(x in alt for x in ["counter", "pip"]):
+                        img.decompose()
+                
+                clean_text = row_copy.get_text(" ", strip=True)
+                m = re.search(r'([+-]\d+%?)', clean_text)
+                if not m:
                     continue
-                m = re.search(r'([+-]\d+%?)', text)
-                if m:
-                    val = m.group(1)
-                    icons = []
-                    for img in row.find_all("img"):
-                        alt = img.get("alt", "")
-                        icon_name = re.sub(
-                            r'\(Icon\)|File:|\.png|\(Item\)', '', alt, flags=re.I).strip()
-                        if icon_name and icon_name not in ["Gold"]:
-                            icons.append(icon_name)
-                    if icons:
-                        stat_key = " ".join(icons)
-                        stats[stat_key] = val
-                    else:
-                        rest = text.replace(val, "").strip()
-                        if rest:
-                            stats[rest] = val
+                
+                val = m.group(1)
+                icons = []
+                for img in row.find_all("img"):
+                    alt = img.get("alt", "")
+                    icon_name = re.sub(
+                        r'\(Icon\)|File:|\.png|\(Item\)', '', alt, flags=re.I).strip()
+                    if icon_name and icon_name not in ["Gold", "Counter", "Pip", "Power Pip"]:
+                        icons.append(icon_name)
+                
+                if icons:
+                    stat_key = " ".join(icons)
+                    stats[stat_key] = val
+                else:
+                    rest = clean_text.replace(val, "").strip()
+                    if rest:
+                        stats[rest] = val
 
                 for img in row.find_all("img"):
                     alt = img.get("alt", "")
                     src = img.get("src", "")
                     if "Male" in alt:
-                        img_male = src
+                        img_male = client.normalize_url(src)
                     elif "Female" in alt:
-                        img_female = src
+                        img_female = client.normalize_url(src)
 
             drop_h = content.find(lambda t: t.name in ["h2", "h3", "b"] and "Dropped By" in t.text)
             if drop_h:
@@ -196,9 +208,7 @@ class Item(Resource):
                             c_n = a.get_text(strip=True)
                             if not c_n:
                                 continue
-                            full_u = href
-                            if not href.startswith("http"):
-                                full_u = f"{client.base_url.rstrip('/')}/{href.lstrip('/')}"
+                            full_u = client.normalize_url(href)
                             dropped_by.append(client._map_category_to_view(c_n, "Creature", full_u))
 
             rec_h = content.find(lambda t: t.name in ["h2", "h3"] and "Used in Recipes" in t.text)
@@ -209,17 +219,40 @@ class Item(Resource):
                         href = a.get("href", "")
                         if "Recipe:" in href:
                             r_n = a.get_text(strip=True)
-                            full_u = href
-                            if not href.startswith("http"):
-                                full_u = f"{client.base_url.rstrip('/')}/{href.lstrip('/')}"
+                            full_u = client.normalize_url(href)
                             view = RecipeView(name=r_n, category="Recipe", url=full_u)
                             view._client = client
                             used_in.append(view)
+
+            # Item Cards extraction
+            item_cards_h = content.find(lambda t: t.name in ["h2", "h3"] and "Item Cards" in t.text)
+            if item_cards_h:
+                list_n = item_cards_h.find_next(["ul", "table"])
+                if list_n:
+                    for a in list_n.find_all("a"):
+                        if "/Spell:" in a.get("href", ""):
+                            card_n = a.get_text(strip=True)
+                            if card_n and card_n not in item_cards:
+                                item_cards.append(card_n)
+            elif "Item Cards" in content.get_text():
+                 # Fallback for infobox or other locations
+                 cards_label = content.find(string=re.compile(r"Item Cards", re.I))
+                 if cards_label:
+                     cell = cards_label.find_parent(["td", "th"])
+                     if cell:
+                         row = cell.find_parent("tr")
+                         if row:
+                             for a in row.find_all("a"):
+                                 if "/Spell:" in a.get("href", ""):
+                                     card_n = a.get_text(strip=True)
+                                     if card_n and card_n not in item_cards:
+                                         item_cards.append(card_n)
 
         return cls(
             name=name, url=url, category="Item",
             level_requirement=level, school_requirement=school, item_type=item_type,
             stats=stats, vendor_sell_price=price, dropped_by=dropped_by,
             appearance=appearance, image_male_url=img_male, image_female_url=img_female,
-            is_tradeable=tradeable, is_auctionable=auctionable, used_in_recipes=used_in
+            is_tradeable=tradeable, is_auctionable=auctionable, used_in_recipes=used_in,
+            item_cards=item_cards
         )
