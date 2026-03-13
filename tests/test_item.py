@@ -46,7 +46,12 @@ async def test_item_malistaire_cowl_of_flux():
     # Check key stats
     assert item.stats.get("Max Health") == "+336"
     assert item.stats.get("Power Pip Chance") == "+10%"
-    assert item.stats.get("Global Resist") == "+10%"
+    assert item.stats.get("Global Resistance") == "+10"
+    assert item.stats.get("Global Armor Piercing") == "+7"
+    assert item.stats.get("Shadow Pip Rating") == "+11"
+    assert item.stats.get("Storm Critical Rating") == "+178"
+    assert item.stats.get("Storm Damage") == "+20"
+    assert item.stats.get("Shadow Damage") == "+5"
     # Critical and Damage usually have school names in them if they are icons
     # Our parser joins icons, so "Storm Critical" or similar might be the key
     assert any("Critical" in k and "Storm" in k for k in item.stats)
@@ -54,7 +59,7 @@ async def test_item_malistaire_cowl_of_flux():
     
     # Economy
     assert item.vendor_sell_price == 2547
-    assert item.is_tradeable is False
+    assert item.is_tradeable is True
     assert item.is_auctionable is False
     
     # Media (should be normalized)
@@ -62,6 +67,16 @@ async def test_item_malistaire_cowl_of_flux():
     assert "https://wiki.wizard101central.com/wiki/images" in item.image_male_url
     assert "/wiki/wiki/" not in item.image_male_url
 
-    # Item Cards
-    assert "Enfeeble" in item.item_cards
-    assert "Steal Charm" in item.item_cards
+    # Item Cards removed because the item doesn't give them.
+    assert len(item.item_cards) == 0
+
+@pytest.mark.asyncio
+async def test_item_armor_of_the_cold_hearted():
+    item = await Item.get("Armor of the Cold Hearted")
+    print(item)
+    assert item.name == "Armor of the Cold Hearted"
+    assert item.level_requirement == 100
+    assert item.school_requirement == "Ice"
+    assert item.stats.get("Max Health") == "+975"
+    assert item.stats.get("Power Pip Chance") == "+9%"
+    assert "Shadow Trap" in item.item_cards
