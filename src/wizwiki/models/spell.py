@@ -45,6 +45,8 @@ class Spell(Resource):
     # Media
     animation_gif_url: Optional[str] = Field(
         default=None, description="URL pointing to a GIF of the spell's casting animation.")
+    card_image_url: Optional[str] = Field(
+        default=None, description="URL to the image of the actual spell card.")
 
     # PvP Rules
     is_pvp: bool = Field(
@@ -83,27 +85,36 @@ class Spell(Resource):
             return cls(name=name, category="Spell", url=url)
 
         # 1. Description extraction (Robust)
-        description = None
-        desc_label = content.find(
-            lambda t: t.name in [
-                "td",
-                "th",
-                "b",
-                "div"] and "Spell Description" in t.get_text())
-        if desc_label:
-            parent_tr = desc_label.find_parent("tr")
-            if parent_tr:
-                tds = parent_tr.find_all("td")
-                if len(tds) > 1:
-                    description = tds[1].get_text(strip=True)
-            if not description:
-                description = desc_label.get_text(strip=True).replace(
-                    "Spell Description", "").strip().lstrip(":").strip()
+        description = ""
+        desc_cell = content.find(
+            lambda t: t.name in ["td", "th", "b", "div"] and "Spell Description" in t.get_text())
+
+        if desc_cell:
+            cell = desc_cell if desc_cell.name in ["td", "th"] else desc_cell.find_parent(["td", "th"])
+            if cell:
+                # 1a. Check next sibling (Classic Table)
+                val_td = cell.find_next_sibling("td")
+                if val_td:
+                    description = val_td.get_text(strip=True)
+
+                # 1b. Check if it's in the same row but not next sibling
+                if not description:
+                    parent_tr = cell.find_parent("tr")
+                    if parent_tr:
+                        tds = parent_tr.find_all("td")
+                        if tds:
+                            # If the label was a TH, the TD might be the value
+                            description = tds[-1].get_text(strip=True)
+
+                # 1c. Fallback: same cell
+                if not description or description == cell.get_text(strip=True):
+                    description = cell.get_text(strip=True).replace(
+                        "Spell Description", "").strip().lstrip(":").strip()
 
         if not description:
+            # Check for generic description headers
             desc_h = content.find(
-                lambda t: t.name in [
-                    "h2", "h3"] and "Description" in t.get_text())
+                lambda t: t.name in ["h2", "h3"] and "Description" in t.get_text())
             if desc_h:
                 desc_p = desc_h.find_next("p")
                 if desc_p:
@@ -118,6 +129,7 @@ class Spell(Resource):
         is_pvp = False
         pvp_requirement = None
         animation_gif_url = None
+        card_image_url = None
 
         infobox = content.find("table", class_="infobox")
         if infobox:
@@ -172,14 +184,19 @@ class Spell(Resource):
                     if "level" in val_text:
                         pvp_requirement = value_td.get_text(strip=True)
 
+                # Look for the card image - typically the first image in the infobox that isn't an icon
+                if not card_image_url:
+                    img = value_td.find("img")
+                    if img and not any(x in img.get("alt", "").lower() for x in ["icon", "pip", "school"]):
+                        src = img.get("src", "")
+                        if src:
+                            card_image_url = client.normalize_url(src)
+
         # 3. Animation GIF
         for img in content.find_all("img"):
             src = img.get("src", "")
             if "Spell_Animation" in src and src.endswith(".gif"):
-                if src.startswith("http"):
-                    animation_gif_url = src
-                else:
-                    animation_gif_url = f"{client.base_url.rstrip('/')}/{src.lstrip('/')}"
+                animation_gif_url = client.normalize_url(src)
                 break
 
         # 4. Acquisition & Training
@@ -211,7 +228,7 @@ class Spell(Resource):
                         l_name = a.get_text(strip=True)
                         l_href = a.get("href")
                         if l_name and l_href:
-                            l_url = f"{client.base_url.rstrip('/')}/{l_href.lstrip('/')}"
+                            l_url = client.normalize_url(l_href)
                             view = client._map_category_to_view(l_name, namespace, l_url)
                             if view not in found_items:
                                 found_items.append(view)
@@ -236,7 +253,7 @@ class Spell(Resource):
                 training_requirements = container.get_text(" ", strip=True)
                 for a in container.find_all("a", href=re.compile(r"/Spell:")):
                     s_name = a.get_text(strip=True)
-                    s_url = f"{client.base_url.rstrip('/')}/{a.get('href').lstrip('/')}"
+                    s_url = client.normalize_url(a.get('href'))
                     if s_name != name:
                         p_view = client._map_category_to_view(s_name, "Spell", s_url)
                         if p_view not in prerequisites:
@@ -265,5 +282,6 @@ class Spell(Resource):
             spellement_acquirable=spellement_acquirable,
             training_requirements=training_requirements,
             prerequisites=prerequisites,
-            acquisition_sources=acquisition_sources
+            acquisition_sources=acquisition_sources,
+            card_image_url=card_image_url
         )

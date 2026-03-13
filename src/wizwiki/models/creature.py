@@ -125,16 +125,13 @@ class Creature(Resource):
                         if not a_name:
                             continue
                         a_href = a.get("href", "")
-                        if not a_href.startswith("http"):
-                            a_href = f"{client.base_url.rstrip('/')}/{a_href.lstrip('/')}"
+                        if a_href:
+                            a_href = client.normalize_url(a_href)
                         allies.append(client._map_category_to_view(a_name, "Creature", a_href))
                 elif "World" == label or "Location" == label:
-                    a = value_cell.find("a")
                     if a:
                         loc_name = a.get_text(strip=True)
-                        loc_href = a.get("href", "")
-                        if not loc_href.startswith("http"):
-                            loc_href = f"{client.base_url.rstrip('/')}/{loc_href.lstrip('/')}"
+                        loc_href = client.normalize_url(a.get("href", ""))
                         location = client._map_category_to_view(loc_name, "Location", loc_href)
 
         # Categorized Drops
@@ -198,8 +195,7 @@ class Creature(Resource):
 
                     d_href = a.get("href", "")
                     if d_href:
-                        if not d_href.startswith("http"):
-                            d_href = f"{client.base_url.rstrip('/')}/{d_href.lstrip('/')}"
+                        d_href = client.normalize_url(d_href)
 
                         d_cat = "Item"
                         if "Spell:" in d_href:

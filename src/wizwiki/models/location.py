@@ -127,8 +127,8 @@ class Location(Resource):
                     map_url = src
                     break
 
-        if map_url and not map_url.startswith("http"):
-            map_url = f"{client.base_url.rstrip('/')}/{map_url.lstrip('/')}"
+        if map_url:
+            map_url = client.normalize_url(map_url)
 
         # 3. Connections and Sublocations
         def extract_links(header_patterns):
@@ -155,9 +155,7 @@ class Location(Resource):
                             else:
                                 continue
                         if link_href:
-                            full_u = link_href
-                            if not link_href.startswith("http"):
-                                full_u = f"{client.base_url.rstrip('/')}/{link_href.lstrip('/')}"
+                            full_u = client.normalize_url(link_href)
                             view = client._map_category_to_view(link_name, "Location", full_u)
                             if view not in links:
                                 links.append(view)
