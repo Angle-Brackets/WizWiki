@@ -189,11 +189,11 @@ class Item(Resource):
                     alt = img.get("alt", "").lower()
                     if any(x in alt for x in ["counter", "pip"]):
                         img.decompose()
-                
+
                 clean_text = row_copy.get_text(" ", strip=True)
                 if not re.search(r'([+-]\d+?%?)', clean_text):
                     continue
-                
+
                 elements = []
                 for child in container.descendants:
                     if isinstance(child, str):
@@ -213,15 +213,15 @@ class Item(Resource):
                             r'\(Icon\)|File:|\.png|\(Item\)', '', alt, flags=re.I).strip()
                         if icon_name and icon_name not in ["Gold", "Counter", "Pip"]:
                             elements.append(f"ICON:{icon_name}")
-                            
+
                 parsed_stats = []
                 current_val = None
                 current_keys = []
-                
+
                 for el in elements:
                     if el.startswith("VAL:"):
                         if current_val:
-                            parsed_stats.append( (current_val, current_keys) )
+                            parsed_stats.append((current_val, current_keys))
                         current_val = el[4:]
                         current_keys = []
                     elif el.startswith("ICON:"):
@@ -230,13 +230,13 @@ class Item(Resource):
                     elif el.startswith("TEXT:"):
                         if current_val:
                             current_keys.append(el[5:])
-                            
+
                 if current_val:
-                    parsed_stats.append( (current_val, current_keys) )
-                    
+                    parsed_stats.append((current_val, current_keys))
+
                 if not parsed_stats:
                     continue
-                    
+
                 if len(parsed_stats) > 1:
                     last_val, last_keys = parsed_stats[-1]
                     if last_keys:
@@ -245,7 +245,7 @@ class Item(Resource):
                             _, keys = parsed_stats[i]
                             if shared_key not in keys:
                                 keys.append(shared_key)
-                                
+
                 for val, keys in parsed_stats:
                     key_str = " ".join(keys) if keys else clean_text.replace(val, "").strip()
                     stats[key_str] = val
@@ -305,17 +305,17 @@ class Item(Resource):
                         if card_n and card_n not in item_cards:
                             item_cards.append(card_n)
             elif "Item Card" in content.get_text():
-                 # Fallback for infobox or other locations
-                 cards_label = content.find(string=re.compile(r"Item Card", re.I))
-                 if cards_label:
-                     cell = cards_label.find_parent(["td", "th", "dd"])
-                     if cell:
-                         row = cell.find_parent(["tr", "dl"])
-                         if row:
-                             for a in row.find_all("a"):
-                                 card_n = extract_card_name(a)
-                                 if card_n and card_n not in item_cards:
-                                     item_cards.append(card_n)
+                # Fallback for infobox or other locations
+                cards_label = content.find(string=re.compile(r"Item Card", re.I))
+                if cards_label:
+                    cell = cards_label.find_parent(["td", "th", "dd"])
+                    if cell:
+                        row = cell.find_parent(["tr", "dl"])
+                        if row:
+                            for a in row.find_all("a"):
+                                card_n = extract_card_name(a)
+                                if card_n and card_n not in item_cards:
+                                    item_cards.append(card_n)
 
         return cls(
             name=name, url=url, category="Item",

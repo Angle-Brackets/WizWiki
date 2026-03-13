@@ -88,7 +88,7 @@ class Spell(Resource):
         description = ""
         desc_cell = content.find(
             lambda t: t.name in ["td", "th", "b", "div"] and "Spell Description" in t.get_text())
-        
+
         if desc_cell:
             cell = desc_cell if desc_cell.name in ["td", "th"] else desc_cell.find_parent(["td", "th"])
             if cell:
@@ -96,7 +96,7 @@ class Spell(Resource):
                 val_td = cell.find_next_sibling("td")
                 if val_td:
                     description = val_td.get_text(strip=True)
-                
+
                 # 1b. Check if it's in the same row but not next sibling
                 if not description:
                     parent_tr = cell.find_parent("tr")
@@ -105,7 +105,7 @@ class Spell(Resource):
                         if tds:
                             # If the label was a TH, the TD might be the value
                             description = tds[-1].get_text(strip=True)
-                
+
                 # 1c. Fallback: same cell
                 if not description or description == cell.get_text(strip=True):
                     description = cell.get_text(strip=True).replace(
@@ -183,14 +183,14 @@ class Spell(Resource):
                     is_pvp = "yes" in val_text or ("available" in val_text and "no" not in val_text)
                     if "level" in val_text:
                         pvp_requirement = value_td.get_text(strip=True)
-                
+
                 # Look for the card image - typically the first image in the infobox that isn't an icon
                 if not card_image_url:
                     img = value_td.find("img")
                     if img and not any(x in img.get("alt", "").lower() for x in ["icon", "pip", "school"]):
-                         src = img.get("src", "")
-                         if src:
-                             card_image_url = client.normalize_url(src)
+                        src = img.get("src", "")
+                        if src:
+                            card_image_url = client.normalize_url(src)
 
         # 3. Animation GIF
         for img in content.find_all("img"):
