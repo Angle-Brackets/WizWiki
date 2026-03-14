@@ -95,7 +95,15 @@ class Creature(Resource):
 
                 label = cells[0].get_text(strip=True)
                 value_cell = cells[-1]
-                value = value_cell.get_text(strip=True)
+
+                cell_copy = BeautifulSoup(str(value_cell), "html.parser")
+                for img in cell_copy.find_all("img"):
+                    alt = img.get("alt", img.get("title", ""))
+                    if alt:
+                        img.replace_with(f" {alt} ")
+                for br in cell_copy.find_all("br"):
+                    br.replace_with(" ")
+                value = " ".join(cell_copy.get_text(" ", strip=True).split())
 
                 if "Rank" == label:
                     rank = value
@@ -105,7 +113,7 @@ class Creature(Resource):
                         health = int(health_match.group(1).replace(",", ""))
                 elif "School" == label:
                     school = value
-                elif "Class" == label:
+                elif "Class" in label:
                     classification = value
                 elif "Starting Pips" == label:
                     pips_match = re.search(r'(\d+)', value)

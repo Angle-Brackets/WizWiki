@@ -1,4 +1,4 @@
-# WizWiki v0.1.2
+# WizWiki v0.1.3
 
 <img align="right" src="logo.png" width="200" alt="WizWiki logo"/>
 

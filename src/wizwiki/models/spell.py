@@ -106,7 +106,17 @@ class Spell(Resource):
                             # If the label was a TH, the TD might be the value
                             description = tds[-1].get_text(strip=True)
 
-                # 1c. Fallback: same cell
+                # 1c. Check if description is in the next row (common in some infoboxes)
+                if not description or description == cell.get_text(strip=True):
+                    parent_tr = cell.find_parent("tr")
+                    if parent_tr:
+                        next_tr = parent_tr.find_next_sibling("tr")
+                        if next_tr:
+                            desc_td = next_tr.find("td")
+                            if desc_td:
+                                description = desc_td.get_text(strip=True)
+
+                # 1d. Fallback: same cell
                 if not description or description == cell.get_text(strip=True):
                     description = cell.get_text(strip=True).replace(
                         "Spell Description", "").strip().lstrip(":").strip()

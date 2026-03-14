@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2026-03-13
+### 🐛 Bug Fixes & Improvements
+* **Creature Stat Parsing:** Fixed bugs related to extracting creature properties and stats seamlessly from their table values.
+  * Added logic to extract `alt` and `title` text for image elements within the value block. This correctly handles parsing properties heavily reliant on icons like `Incoming Boost` and primary `School`.
+  * Relaxed the text matching expression to naturally handle variations of the creature category label (e.g., `Class` vs `Classification`).
+* **Spell Description Parsing:** Addressed an issue where spell descriptions stored across separate table rows returned an empty string. The parser now intelligently traverses downwards to check the immediately following table row.
+
+### 🧪 Testing
+* Added `test_creature_alhazred` integration test to ensure robust handling of complex nested stat modifiers. 
+* Upgraded assertion behavior for existing `Spell` core tests (`test_spell_fire_cat`) to assert correctly populated spell descriptions.
+
 ## [0.1.2] - 2026-03-12
 ### 🐛 Bug Fixes & Improvements
 * **Robust Item Stat Parsing:**
