@@ -10,6 +10,7 @@ async def test_spell_fire_cat():
     assert s.school == "Fire"
     assert s.pip_cost == "1"
     assert s.accuracy == "75%"
+    assert s.description != ""
     assert "Damage" in s.type_icons
     assert s.can_be_trained is True
     assert len(s.trainers) > 0

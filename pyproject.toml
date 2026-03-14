@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wizwiki"
-version = "0.1.2"
+version = "0.1.3"
 description = "A modern asynchronous client for the Wizard101 Wiki."
 readme = "README.md"
 authors = [

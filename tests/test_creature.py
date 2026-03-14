@@ -34,3 +34,13 @@ async def test_creature_rattlebones():
     c = await Creature.get("Rattlebones")
     assert c.name == "Rattlebones"
     assert c.battle_stats is not None
+
+
+@pytest.mark.asyncio
+async def test_creature_alhazred():
+    c = await Creature.get("Alhazred")
+    assert c.name == "Alhazred"
+    assert c.classification == "Deckathalon Creature"
+    assert c.school == "Balance"
+    assert "Balance" in c.battle_stats.incoming_boost
+    assert "Myth" in c.battle_stats.incoming_boost
