@@ -68,3 +68,16 @@ async def test_spell_skeletal_pirate():
     assert s.school == "Death"
     assert s.pip_cost == "5"
     assert "Damage" in s.type_icons
+
+
+@pytest.mark.asyncio
+async def test_spell_helephant():
+    s = await Spell.get("Helephant")
+    assert s.name == "Helephant"
+    assert s.training_requirements is not None
+    # training_requirements is the comma-separated list of required spells
+    assert "Wyldfire" in s.training_requirements
+    assert any("Fire Cat" in p.name for p in s.prerequisites)
+    # trainers should be populated since Helephant is trainable
+    assert s.can_be_trained
+    assert any("Dalia" in t.name for t in s.trainers)

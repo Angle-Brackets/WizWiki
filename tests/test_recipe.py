@@ -39,3 +39,12 @@ async def test_recipe_krampus():
     recipe = await Recipe.get("Krampus")
     assert "Krampus" in recipe.name
     assert recipe.category == "Recipe"
+
+
+@pytest.mark.asyncio
+async def test_recipe_ring_of_apotheosis():
+    recipe = await Recipe.get("Ring of Apotheosis")
+    assert "Ring of Apotheosis" in recipe.name
+    assert recipe.cost is not None
+    assert recipe.cost > 0
+    assert len(recipe.vendors) > 0

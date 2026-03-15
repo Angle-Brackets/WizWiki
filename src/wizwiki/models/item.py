@@ -47,6 +47,8 @@ class Item(Resource):
         default=None, description="URL to the image of the item equipped on a male character.")
     image_female_url: Optional[str] = Field(
         default=None, description="URL to the image of the item equipped on a female character.")
+    image_url: Optional[str] = Field(
+        default=None, description="A general representative image for the item.")
     dropped_by: List[CreatureView] = Field(default_factory=list,
                                            description="A list of creatures known to drop this item.")
     used_in_recipes: List[RecipeView] = Field(
@@ -85,6 +87,7 @@ class Item(Resource):
         appearance = None
         img_male = None
         img_female = None
+        image_url = None
         tradeable = True
         auctionable = True
         used_in = []
@@ -257,6 +260,29 @@ class Item(Resource):
                     img_male = client.normalize_url(src)
                 elif "Female" in alt:
                     img_female = client.normalize_url(src)
+                elif name.lower() in alt.lower() or name.lower() in src.lower():
+                    if not any(x in alt for x in ["Male", "Female", "Icon"]):
+                        image_url = client.normalize_url(src)
+
+            # Fallbacks and consistency
+            if not image_url and (img_male or img_female):
+                image_url = img_male or img_female
+            if image_url and not img_male:
+                img_male = image_url
+            if image_url and not img_female:
+                img_female = image_url
+
+            if not image_url:
+                # Look for the first non-icon image in the infobox
+                infobox = content.find("table", class_="infobox")
+                if infobox:
+                    img = infobox.find("img")
+                    if img and "Icon" not in img.get("alt", ""):
+                        image_url = client.normalize_url(img.get("src"))
+                        if not img_male:
+                            img_male = image_url
+                        if not img_female:
+                            img_female = image_url
 
             drop_h = content.find(lambda t: t.name in ["h2", "h3", "b"] and "Dropped By" in t.text)
             if drop_h:
@@ -322,6 +348,7 @@ class Item(Resource):
             level_requirement=level, school_requirement=school, item_type=item_type,
             stats=stats, vendor_sell_price=price, dropped_by=dropped_by,
             appearance=appearance, image_male_url=img_male, image_female_url=img_female,
+            image_url=image_url,
             is_tradeable=tradeable, is_auctionable=auctionable, used_in_recipes=used_in,
             item_cards=item_cards
         )

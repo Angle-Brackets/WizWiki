@@ -210,69 +210,104 @@ class Spell(Resource):
                 break
 
         # 4. Acquisition & Training
+        # The wiki organizes acquisition info in div.column-category blocks,
+        # each with a div.infobox-plain-heading label.
         can_be_trained = False
         trainers = []
         training_requirements = None
         prerequisites = []
         acquisition_sources = []
         spellement_acquirable = False
+        training_points_cost = None
 
-        # Look for labels like "TRAINER", "QUEST", "REWARDED FROM"
-        def find_acquisition_links(patterns, namespace):
-            found_items = []
-            # Find all relevant text nodes
-            for text_node in content.find_all(string=re.compile(patterns, re.I)):
-                # Ignore scripts or styles
-                if text_node.parent.name in ['script', 'style']:
-                    continue
-                # Found a potential header text. Look for links in the parent or next containers
-                search_areas = [
-                    text_node.find_parent("table"),
-                    text_node.find_parent("div"),
-                    text_node.parent.find_next(["ul", "ol", "table", "div", "p"])
-                ]
-                for area in search_areas:
-                    if not area:
-                        continue
-                    for a in area.find_all("a", href=re.compile(f"/{namespace}:")):
-                        l_name = a.get_text(strip=True)
-                        l_href = a.get("href")
-                        if l_name and l_href:
-                            l_url = client.normalize_url(l_href)
-                            view = client._map_category_to_view(l_name, namespace, l_url)
-                            if view not in found_items:
-                                found_items.append(view)
-            return found_items
+        for col in content.find_all("div", class_="column-category"):
+            heading_el = col.find("div", class_="infobox-plain-heading")
+            if not heading_el:
+                continue
+            heading = heading_el.get_text(" ", strip=True)
+            heading_lower = heading.lower()
 
-        trainers = find_acquisition_links(r"TRAINER|TRAINING SOURCE", "NPC")
-        if trainers:
-            can_be_trained = True
+            if "trainer" in heading_lower:
+                for a in col.find_all("a", href=re.compile(r"/NPC:")):
+                    v_name = a.get_text(strip=True)
+                    v_url = client.normalize_url(a["href"])
+                    view = client._map_category_to_view(v_name, "NPC", v_url)
+                    if view not in trainers:
+                        trainers.append(view)
+                if trainers:
+                    can_be_trained = True
 
-        acquisition_sources = find_acquisition_links(
-            r"QUEST|REWARDED FROM QUEST|ACQUISITION", "Quest")
+            elif "training point" in heading_lower:
+                # "Training Points can purchase this Spell"
+                can_be_trained = True
 
-        # Prerequisites / Requirements
-        req_nodes = content.find_all(
-            string=re.compile(
-                r"Requirements to Train|Required Spell|PREREQUISITES?",
-                re.I))
-        for req_node in req_nodes:
-            container = req_node.find_parent(
-                ["tr", "div", "table"]) or req_node.parent.find_next(["p", "div", "ul", "tr"])
-            if container:
-                training_requirements = container.get_text(" ", strip=True)
-                for a in container.find_all("a", href=re.compile(r"/Spell:")):
+            elif "requirement" in heading_lower:
+                # "Requirements to Train" - list of required spells
+                req_texts = []
+                for a in col.find_all("a", href=re.compile(r"/Spell:")):
                     s_name = a.get_text(strip=True)
-                    s_url = client.normalize_url(a.get('href'))
-                    if s_name != name:
+                    s_url = client.normalize_url(a["href"])
+                    if s_name and s_name != name:
                         p_view = client._map_category_to_view(s_name, "Spell", s_url)
                         if p_view not in prerequisites:
                             prerequisites.append(p_view)
+                        req_texts.append(s_name)
+                if req_texts:
+                    training_requirements = ", ".join(req_texts)
+
+            elif "prerequisite" in heading_lower:
+                # "Prerequisite to Train" - spells unlocked by this spell
+                # These are spells that REQUIRE this one, not prereqs of this spell
+                # Some wikis also include this for reverse lookup. Skip for now.
+                pass
+
+            elif "quest" in heading_lower or "rewarded" in heading_lower or "acquisition" in heading_lower:
+                for a in col.find_all("a", href=re.compile(r"/Quest:")):
+                    q_name = a.get_text(strip=True)
+                    q_url = client.normalize_url(a["href"])
+                    view = client._map_category_to_view(q_name, "Quest", q_url)
+                    if view not in acquisition_sources:
+                        acquisition_sources.append(view)
+
+            elif "spellement" in heading_lower:
+                spellement_text = col.get_text(strip=True).lower()
+                spellement_acquirable = "cannot" not in spellement_text
+
+        # Fallback: look for legacy pattern with text nodes
+        if not trainers and not prerequisites:
+            def find_acquisition_links(pattern, namespace):
+                found_items = []
+                for text_node in content.find_all(string=re.compile(pattern, re.I)):
+                    if text_node.parent.name in ['script', 'style']:
+                        continue
+                    search_areas = [
+                        text_node.find_parent("table"),
+                        text_node.find_parent("div"),
+                        text_node.parent.find_next(["ul", "ol", "table", "div", "p"])
+                    ]
+                    for area in search_areas:
+                        if not area:
+                            continue
+                        for a in area.find_all("a", href=re.compile(f"/{namespace}:")):
+                            l_name = a.get_text(strip=True)
+                            l_href = a.get("href")
+                            if l_name and l_href:
+                                l_url = client.normalize_url(l_href)
+                                view = client._map_category_to_view(l_name, namespace, l_url)
+                                if view not in found_items:
+                                    found_items.append(view)
+                return found_items
+
+            trainers = find_acquisition_links(r"TRAINER|TRAINING SOURCE", "NPC")
+            if trainers:
+                can_be_trained = True
+            acquisition_sources = find_acquisition_links(r"QUEST|REWARDED FROM QUEST|ACQUISITION", "Quest")
 
         # Spellements
-        spellement_match = content.find(string=re.compile(r"learned with Spellements", re.I))
-        if spellement_match:
-            spellement_acquirable = "CAN be learned" in spellement_match
+        if not spellement_acquirable:
+            spellement_match = content.find(string=re.compile(r"learned with Spellements", re.I))
+            if spellement_match:
+                spellement_acquirable = "CAN be learned" in spellement_match
 
         return cls(
             name=name,
