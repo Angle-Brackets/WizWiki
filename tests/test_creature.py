@@ -44,3 +44,11 @@ async def test_creature_alhazred():
     assert c.school == "Balance"
     assert "Balance" in c.battle_stats.incoming_boost
     assert "Myth" in c.battle_stats.incoming_boost
+
+
+@pytest.mark.asyncio
+async def test_creature_malistaire_shadow():
+    c = await Creature.get("Malistaire the Undying (Shadow)")
+    assert c.name == "Malistaire the Undying (Shadow)"
+    assert c.image_url is not None
+    assert len(c.cheats) > 0

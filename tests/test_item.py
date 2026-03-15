@@ -81,3 +81,12 @@ async def test_item_armor_of_the_cold_hearted():
     assert item.stats.get("Max Health") == "+975"
     assert item.stats.get("Power Pip Chance") == "+9%"
     assert "Shadow Trap" in item.item_cards
+
+
+@pytest.mark.asyncio
+async def test_item_ring_of_apotheosis():
+    item = await Item.get("Ring of Apotheosis")
+    assert item.name == "Ring of Apotheosis"
+    assert item.image_url is not None
+    assert item.image_male_url == item.image_url
+    assert item.image_female_url == item.image_url

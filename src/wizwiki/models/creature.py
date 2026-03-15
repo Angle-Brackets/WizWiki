@@ -45,6 +45,12 @@ class Creature(Resource):
     battle_stats: Optional[BattleStats] = Field(
         default=None, description="Detailed combat statistics like starting pips and resistances.")
 
+    # Media and Special Features
+    image_url: Optional[str] = Field(
+        default=None, description="URL to the creature's image.")
+    cheats: List[str] = Field(
+        default_factory=list, description="A list of unique cheats used by the creature.")
+
     # Drops and Rewards
     drops: Dict[str, List[View]] = Field(
         default_factory=list, description="Categorized items that this creature may drop upon defeat.")
@@ -74,6 +80,8 @@ class Creature(Resource):
         location = None
         allies = []
         drops = {}
+        image_url = None
+        cheats = []
 
         content = soup.find(id="mw-content-text")
         if not content:
@@ -141,6 +149,52 @@ class Creature(Resource):
                         loc_name = a.get_text(strip=True)
                         loc_href = client.normalize_url(a.get("href", ""))
                         location = client._map_category_to_view(loc_name, "Location", loc_href)
+
+            # Extract main creature image from infobox
+            img_tag = infobox.find("img")
+            if img_tag:
+                src = img_tag.get("src", "")
+                if src:
+                    image_url = client.normalize_url(src)
+
+        # Cheats extraction
+        # The wiki uses a div with classes "container container-green" for cheats sections.
+        # Their heading has a <b>Cheats</b> inside a "container-green" table row,
+        # and the full cheat text is in the div itself.
+        cheat_divs = content.find_all(
+            "div", class_=lambda c: c and "container-green" in c
+        )
+        for cheat_div in cheat_divs:
+            cheat_text = cheat_div.get_text(" ", strip=True)
+            # Strip any leading 'Cheats' header word
+            cheat_text = re.sub(r'^Cheats\s*', '', cheat_text).strip()
+            if cheat_text and len(cheat_text) > 20:
+                cheats.append(cheat_text)
+
+        if not cheats:
+            # Fallback: Look for bold "Cheats" tags at the top level,
+            # then look at the next <ul>, <table>, or <dl>.
+            cheats_h = content.find(
+                lambda t: t.name in ["h2", "h3", "h4", "b"] and t.get_text(strip=True) == "Cheats"
+            )
+            if cheats_h:
+                list_node = cheats_h.find_next(["ul", "table", "dl"])
+                if list_node:
+                    if list_node.name == "ul":
+                        for li in list_node.find_all("li"):
+                            cheat_text = li.get_text(strip=True)
+                            if cheat_text and len(cheat_text) > 10:
+                                cheats.append(cheat_text)
+                    elif list_node.name == "table":
+                        for row in list_node.find_all("tr"):
+                            cheat_text = row.get_text(" ", strip=True)
+                            if cheat_text and len(cheat_text) > 10:
+                                cheats.append(cheat_text)
+                    elif list_node.name == "dl":
+                        for dt in list_node.find_all("dt"):
+                            cheat_text = dt.get_text(strip=True)
+                            if cheat_text and len(cheat_text) > 10:
+                                cheats.append(cheat_text)
 
         # Categorized Drops
         # More direct approach: find labels for types and their associated lists
@@ -231,5 +285,7 @@ class Creature(Resource):
             location=location,
             allies=allies,
             drops=drops,
-            battle_stats=battle_stats
+            battle_stats=battle_stats,
+            image_url=image_url,
+            cheats=cheats
         )
